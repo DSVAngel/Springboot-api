@@ -9,6 +9,21 @@ public class Reaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, unique = true)
+    private EReaction description;
+
+    @Column(length = 50, columnDefinition = "TEXT")
+    private String emoji;
+
+    public Reaction() {}
+
+    public Reaction(EReaction description) {
+        this.description = description;
+        this.emoji = description.getEmoji();
+    }
+
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -17,22 +32,32 @@ public class Reaction {
         this.id = id;
     }
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    private EReaction description;
-
-    public Reaction() {
-    }
-
-    public Reaction(EReaction description) {
-        this.description = description;
-    }
-
     public EReaction getDescription() {
         return description;
     }
 
     public void setDescription(EReaction description) {
         this.description = description;
+        if (description != null) {
+            this.emoji = description.getEmoji();
+        }
+    }
+
+    public String getEmoji() {
+        return emoji;
+    }
+
+    public void setEmoji(String emoji) {
+        this.emoji = emoji;
+    }
+
+    // Helper method to get display text
+    public String getDisplayText() {
+        return (emoji != null ? emoji : "") + " " + (description != null ? description.name().toLowerCase() : "");
+    }
+
+    // For JSON serialization
+    public String getName() {
+        return description != null ? description.name() : null;
     }
 }

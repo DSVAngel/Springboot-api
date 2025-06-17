@@ -1,101 +1,155 @@
 package com.dsvangel.spring.segurity.postgresql.controllers;
+
+import java.util.List;
 import java.util.Optional;
 
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.dsvangel.spring.segurity.postgresql.models.Reaction;
 import com.dsvangel.spring.segurity.postgresql.models.Tweet;
 import com.dsvangel.spring.segurity.postgresql.models.TweetReaction;
 import com.dsvangel.spring.segurity.postgresql.models.User;
 import com.dsvangel.spring.segurity.postgresql.payload.request.TweetReactionRequest;
-import com.dsvangel.spring.segurity.postgresql.models.Reaction;
-
-import com.dsvangel.spring.segurity.postgresql.repository.UserRepository;
+import com.dsvangel.spring.segurity.postgresql.payload.response.MessageResponse;
 import com.dsvangel.spring.segurity.postgresql.repository.ReactionRepository;
 import com.dsvangel.spring.segurity.postgresql.repository.TweetReactionRepository;
 import com.dsvangel.spring.segurity.postgresql.repository.TweetRepository;
+import com.dsvangel.spring.segurity.postgresql.repository.UserRepository;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/reactions")
-
 public class TweetReactionController {
 
     @Autowired
     private TweetReactionRepository tweetReactionRepository;
+    
     @Autowired
     private UserRepository userRepository;
+    
     @Autowired
     private TweetRepository tweetRepository;
+    
     @Autowired
     private ReactionRepository reactionRepository;
 
-
-  @GetMapping("/all")
-    public Page<TweetReaction> getTweet(Pageable pageable) {
-        return tweetReactionRepository.findAll(pageable);
+    // Este endpoint debe ser público
+    @GetMapping("/tweet/{tweetId}")
+    public ResponseEntity<List<TweetReaction>> getReactionsByTweet(@PathVariable Long tweetId) {
+        try {
+            List<TweetReaction> reactions = tweetReactionRepository.findByTweet_Id(tweetId);
+            return ResponseEntity.ok(reactions);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(null);
+        }
     }
-  
-  @PostMapping("/create")
-  public TweetReaction createReaction(@Valid @RequestBody TweetReactionRequest tweetReaction) {
-        System.out.println("tweetid : " + tweetReaction.getTweetId()  );
-        System.out.println("reactiontid : " + tweetReaction.getReactionId()  );
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
-        System.out.println("userid : " + userId  );
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<TweetReaction>> getReactionsByUser(@PathVariable Long userId) {
+        try {
+            List<TweetReaction> reactions = tweetReactionRepository.findByUser_Id(userId);
+            return ResponseEntity.ok(reactions);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(null);
+        }
+    }
 
+    @PostMapping("/create")
+    public ResponseEntity<?> createOrUpdateReaction(@Valid @RequestBody TweetReactionRequest request) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
 
-        User user = getValidUser(userId);
-        System.out.println("user");
+            User user = getValidUser(username);
+            Tweet tweet = getValidTweet(request.getTweetId());
+            Reaction reaction = getValidReaction(request.getReactionId());
 
-        System.out.println(user);
+            // Check if user already reacted to this tweet
+            Optional<TweetReaction> existingReaction = tweetReactionRepository
+                .findByUser_IdAndTweet_Id(user.getId(), tweet.getId());
 
-        TweetReaction myTweetReaction = new TweetReaction();
-        Tweet myTweet = getValidTweet(tweetReaction.getTweetId());
-        System.out.println("object tweet : " );
-        System.out.println(myTweet );
+            TweetReaction tweetReaction;
+            
+            if (existingReaction.isPresent()) {
+                // Update existing reaction
+                tweetReaction = existingReaction.get();
+                tweetReaction.setReaction(reaction);
+            } else {
+                // Create new reaction
+                tweetReaction = new TweetReaction(user, tweet, reaction);
+            }
 
+            tweetReactionRepository.save(tweetReaction);
+            return ResponseEntity.ok(tweetReaction);
 
-        Reaction myReaction = getValidReaction(tweetReaction.getReactionId());
-        System.out.println("object reaction : "   );
-        System.out.println( myReaction );
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                .body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
 
-        //myTweetReaction.setUserId(user.getId());
-        //myTweetReaction.setTweetId(myTweet.getId());
-        //myTweetReaction.setReactionId(myReaction.getId());
-        
-        myTweetReaction.setUser(user);
-        myTweetReaction.setTweet(myTweet);
-        myTweetReaction.setReaction(myReaction);
-        
-        System.out.println("tweet reaction : "   );
-        System.out.println( myTweetReaction.getReactionId());
-                System.out.println( myTweetReaction.getTweetId());
+    @DeleteMapping("/tweet/{tweetId}")
+    public ResponseEntity<?> removeReaction(@PathVariable Long tweetId) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
 
-                        System.out.println( myTweetReaction.getUserId());
+            User user = getValidUser(username);
+            
+            Optional<TweetReaction> existingReaction = tweetReactionRepository
+                .findByUser_IdAndTweet_Id(user.getId(), tweetId);
 
+            if (existingReaction.isPresent()) {
+                tweetReactionRepository.delete(existingReaction.get());
+                return ResponseEntity.ok(new MessageResponse("Reaction removed successfully"));
+            } else {
+                return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: No reaction found to remove"));
+            }
 
-        tweetReactionRepository.save(myTweetReaction);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                .body(new MessageResponse("Error: " + e.getMessage()));
+        }
+    }
 
-        return myTweetReaction;
-  }
+    @GetMapping("/tweet/{tweetId}/count")
+    public ResponseEntity<Long> getReactionCount(@PathVariable Long tweetId) {
+        try {
+            long count = tweetReactionRepository.countByTweet_Id(tweetId);
+            return ResponseEntity.ok(count);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(0L);
+        }
+    }
 
-    private User getValidUser(String userId) {
-        Optional<User> userOpt = userRepository.findByUsername(userId);
+    @GetMapping("/tweet/{tweetId}/count/{reactionId}")
+    public ResponseEntity<Long> getReactionCountByType(@PathVariable Long tweetId, @PathVariable Long reactionId) {
+        try {
+            long count = tweetReactionRepository.countByTweet_IdAndReaction_Id(tweetId, reactionId);
+            return ResponseEntity.ok(count);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(0L);
+        }
+    }
+
+    private User getValidUser(String username) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
         if (!userOpt.isPresent()) {
             throw new RuntimeException("User not found");
         }
@@ -117,5 +171,4 @@ public class TweetReactionController {
         }
         return reactionOpt.get();
     }
-
 }

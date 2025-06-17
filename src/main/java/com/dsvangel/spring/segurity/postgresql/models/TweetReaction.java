@@ -3,102 +3,80 @@ package com.dsvangel.spring.segurity.postgresql.models;
 import jakarta.persistence.*;
 
 @Entity
-@Table( name = "tweet_reactions",
-          uniqueConstraints = { 
-          @UniqueConstraint(columnNames = {"user_id", "tweet_id"}
-          ),
-      
-        }
+@Table(name = "tweet_reactions",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "tweet_id"})
+    }
 )
-
 public class TweetReaction {
 
-   @Id
-   @GeneratedValue(strategy = GenerationType.IDENTITY)
-   private Long id;
- 
-   @Column(name = "reaction_id")
-   Long reactionId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-   public Long getReactionId() {
-    return reactionId;
-}
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-   public void setReactionId(Long reactionId) {
-    this.reactionId = reactionId;
-   }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tweet_id", nullable = false)
+    private Tweet tweet;
 
-   @Column(name = "user_id")
-   Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reaction_id", nullable = false)
+    private Reaction reaction;
 
-    public Long getUserId() {
-    return userId;
-}
+    public TweetReaction() {}
 
-   public void setUserId(Long userId) {
-    this.userId = userId;
-   }
-
-    @Column(name = "tweet_id")
-    Long tweetId;
-
-  public Long getTweetId() {
-        return tweetId;
+    public TweetReaction(User user, Tweet tweet, Reaction reaction) {
+        this.user = user;
+        this.tweet = tweet;
+        this.reaction = reaction;
     }
 
-    public void setTweetId(Long tweetId) {
-        this.tweetId = tweetId;
+    // Getters and Setters
+    public Long getId() {
+        return id;
     }
 
-  public Long getId() {
-    return id;
-}
-
-   public void setId(Long id) {
-    this.id = id;
-   }
-
-  
-    @ManyToOne
-    @MapsId("userId")
-    @JoinColumn(name = "user_id")
-    User user;
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public User getUser() {
         return user;
     }
 
     public void setUser(User user) {
-        this.userId = user.getId();
         this.user = user;
     }
-
-    @ManyToOne
-    @MapsId("tweetId")
-    @JoinColumn(name = "tweet_id")
-    Tweet tweet;
 
     public Tweet getTweet() {
         return tweet;
     }
 
     public void setTweet(Tweet tweet) {
-        this.tweetId = tweet.getId();
         this.tweet = tweet;
     }
-
-    @ManyToOne
-    @MapsId("reactionId")
-    @JoinColumn(name = "reaction_id")
-    Reaction reaction;
 
     public Reaction getReaction() {
         return reaction;
     }
 
     public void setReaction(Reaction reaction) {
-        this.reactionId = reaction.getId();
         this.reaction = reaction;
     }
 
+    // Helper methods for backward compatibility
+    public Long getUserId() {
+        return user != null ? user.getId() : null;
+    }
+
+    public Long getTweetId() {
+        return tweet != null ? tweet.getId() : null;
+    }
+
+    public Long getReactionId() {
+        return reaction != null ? reaction.getId() : null;
+    }
 }

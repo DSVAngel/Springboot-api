@@ -21,20 +21,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 
   private static final Logger logger = LoggerFactory.getLogger(AuthEntryPointJwt.class);
+
   @Override
-  public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
-      throws IOException, ServletException {
+  public void commence(HttpServletRequest request, HttpServletResponse response,
+    AuthenticationException authException) throws IOException, ServletException {
+    
     logger.error("Unauthorized error: {}", authException.getMessage());
-  
+    logger.error("Request URI: {}", request.getRequestURI());
+    logger.error("Request Method: {}", request.getMethod());
+    
+    // Agregar headers CORS
+    response.setHeader("Access-Control-Allow-Origin", "*");
+    response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    response.setHeader("Access-Control-Allow-Headers", "*");
+
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-  
+
     final Map<String, Object> body = new HashMap<>();
     body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
     body.put("error", "Unauthorized");
     body.put("message", authException.getMessage());
     body.put("path", request.getServletPath());
-  
+
     final ObjectMapper mapper = new ObjectMapper();
     mapper.writeValue(response.getOutputStream(), body);
   }

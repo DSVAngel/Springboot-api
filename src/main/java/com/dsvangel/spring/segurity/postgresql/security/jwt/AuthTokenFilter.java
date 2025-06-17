@@ -20,6 +20,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.dsvangel.spring.segurity.postgresql.security.services.UserDetailsServiceImpl;
 
 public class AuthTokenFilter extends OncePerRequestFilter {
+  
   @Autowired
   private JwtUtils jwtUtils;
 
@@ -33,18 +34,27 @@ public class AuthTokenFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
     try {
       String jwt = parseJwt(request);
+      
+      // Si no hay JWT, continúa sin autenticar (para endpoints públicos)
       if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
         String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null,
-            userDetails.getAuthorities());
+        
+        UsernamePasswordAuthenticationToken authentication = 
+            new UsernamePasswordAuthenticationToken(userDetails,
+                                                 null,
+                                                 userDetails.getAuthorities());
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        logger.debug("Set Authentication in SecurityContext for user: {}", username);
+      } else {
+        logger.debug("No valid JWT token found, proceeding without authentication");
       }
     } catch (Exception e) {
-      logger.error("Cannot set user authentication: {}", e);
+      logger.error("Cannot set user authentication: {}", e.getMessage());
+      // No lanzar excepción, continuar sin autenticación
     }
 
     filterChain.doFilter(request, response);
@@ -54,7 +64,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     String headerAuth = request.getHeader("Authorization");
 
     if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-      return headerAuth.substring(7, headerAuth.length());
+      return headerAuth.substring(7);
     }
 
     return null;
