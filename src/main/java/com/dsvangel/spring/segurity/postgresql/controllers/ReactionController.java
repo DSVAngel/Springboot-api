@@ -5,7 +5,6 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,7 +43,6 @@ public class ReactionController {
     }
 
     @PostMapping("/create")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createReaction(@RequestBody ReactionRequest reactionRequest) {
         try {
             EReaction eReaction = EReaction.valueOf(reactionRequest.getDescription().toUpperCase());
@@ -72,7 +70,6 @@ public class ReactionController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteReaction(@PathVariable Long id) {
         try {
             Optional<Reaction> reactionOpt = reactionRepository.findById(id);
@@ -91,19 +88,24 @@ public class ReactionController {
     }
 
     @PostMapping("/init")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> initializeDefaultReactions() {
         try {
-            // Create default reactions if they don't exist
+            // Create or update default reactions
             for (EReaction eReaction : EReaction.values()) {
                 Optional<Reaction> existingReaction = reactionRepository.findByDescription(eReaction);
-                if (!existingReaction.isPresent()) {
-                    Reaction reaction = new Reaction(eReaction);
-                    reactionRepository.save(reaction);
+                Reaction reaction;
+                if (existingReaction.isPresent()) {
+                    // Update existing reaction with new emoji
+                    reaction = existingReaction.get();
+                    reaction.setDescription(eReaction); // This will update the emoji
+                } else {
+                    // Create new reaction
+                    reaction = new Reaction(eReaction);
                 }
+                reactionRepository.save(reaction);
             }
             
-            return ResponseEntity.ok(new MessageResponse("Default emoji reactions initialized successfully"));
+            return ResponseEntity.ok(new MessageResponse("Default emoji reactions initialized/updated successfully"));
 
         } catch (Exception e) {
             return ResponseEntity.badRequest()

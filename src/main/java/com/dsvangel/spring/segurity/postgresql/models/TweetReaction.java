@@ -1,6 +1,9 @@
 package com.dsvangel.spring.segurity.postgresql.models;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "tweet_reactions",
@@ -8,6 +11,8 @@ import jakarta.persistence.*;
         @UniqueConstraint(columnNames = {"user_id", "tweet_id"})
     }
 )
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class TweetReaction {
 
     @Id
@@ -16,14 +21,17 @@ public class TweetReaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tweet_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Tweet tweet;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "reaction_id", nullable = false)
+    @JsonManagedReference
     private Reaction reaction;
 
     public TweetReaction() {}

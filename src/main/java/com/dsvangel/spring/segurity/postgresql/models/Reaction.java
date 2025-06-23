@@ -1,9 +1,11 @@
 package com.dsvangel.spring.segurity.postgresql.models;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 @Entity
 @Table(name = "reactions")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Reaction {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -54,10 +56,5 @@ public class Reaction {
     // Helper method to get display text
     public String getDisplayText() {
         return (emoji != null ? emoji : "") + " " + (description != null ? description.name().toLowerCase() : "");
-    }
-
-    // For JSON serialization
-    public String getName() {
-        return description != null ? description.name() : null;
     }
 }

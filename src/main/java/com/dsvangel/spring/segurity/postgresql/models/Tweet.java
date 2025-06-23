@@ -5,12 +5,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "tweets")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-
 public class Tweet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,10 +26,16 @@ public class Tweet {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-   @ManyToOne(fetch = FetchType.LAZY)
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-private User postedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @JsonIgnore
+    private User postedBy;
 
+    @JsonProperty("postedBy")
+    public UserDTO getPostedByDTO() {
+        if (postedBy == null) return null;
+        return new UserDTO(postedBy.getId(), postedBy.getUsername());
+    }
 
     public Tweet() {
         this.createdAt = LocalDateTime.now();
@@ -89,13 +94,22 @@ private User postedBy;
         this.postedBy = postedBy;
     }
 
-    // Helper method to get user ID
-    public Long getPostedById() {
-        return postedBy != null ? postedBy.getId() : null;
-    }
+    // DTO class for User
+    private static class UserDTO {
+        private Long id;
+        private String username;
 
-    // Helper method to check if tweet was edited
-    public boolean isEdited() {
-        return updatedAt != null && !updatedAt.equals(createdAt);
+        public UserDTO(Long id, String username) {
+            this.id = id;
+            this.username = username;
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public String getUsername() {
+            return username;
+        }
     }
 }

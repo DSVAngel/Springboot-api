@@ -99,7 +99,7 @@ public class WebSecurityConfig {
                         
                         // Admin-only endpoints
                         .requestMatchers("/api/reaction-types/create").hasRole("ADMIN")
-                        .requestMatchers("/api/reaction-types/init").hasRole("ADMIN")
+                        .requestMatchers("/api/reaction-types/init").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/reaction-types/**").hasRole("ADMIN")
                         
                         // Test endpoints

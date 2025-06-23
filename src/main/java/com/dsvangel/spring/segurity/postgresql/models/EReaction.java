@@ -24,18 +24,18 @@ public enum EReaction {
         return unicodeEmoji;
     }
 
-    // Usar el emoji de texto por defecto para evitar problemas de codificación
+    // Usar el emoji Unicode por defecto
     public String getEmoji() {
-        return textEmoji;
+        return unicodeEmoji;
     }
 
-    // Para el frontend, intentar usar Unicode si está disponible
+    // Para el frontend, usar Unicode
     public String getDisplayEmoji() {
         return unicodeEmoji;
     }
 
     @Override
     public String toString() {
-        return textEmoji;
+        return unicodeEmoji;
     }
 }
